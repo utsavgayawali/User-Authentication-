@@ -16,12 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
-from main import views
+from django.views.generic.base import RedirectView
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
      path('', include('main.urls')),
+    # so when after doing this when if had url just  http://127.0.0.1:8000/ it automatically render it to register page it is need for deployment 
+     path('', RedirectView.as_view(url='/register/',permanent=False)),
      path('accounts/', include('django.contrib.auth.urls')),
-    path('reset/', views.reset, name='reset'),
-
 ]
