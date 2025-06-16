@@ -1,0 +1,154 @@
+from django.shortcuts import render,redirect
+from django.contrib.auth import authenticate,login as auth_login,logout
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+
+# fro sending mail 
+# frist to email backend setup in setting.py   
+from django.core.mail import send_mail
+from django.conf import settings
+from django.http import HttpResponse
+# for otp 
+import random
+from django.core.exceptions import ObjectDoesNotExist
+from main.models import OTP
+
+def register(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        user_data_has_error = False
+
+        context={'username_value':username, 'email_value':email}
+          
+        if User.objects.filter(username=username).exists():
+            user_data_has_error=True
+            messages.error(request,"Username already exists")
+        if User.objects.filter(email=email).exists():
+            user_data_has_error=True
+            messages.error(request,"Email already exists")
+        try:
+          validate_password(password,user=None)
+        except ValidationError as e:
+            user_data_has_error = True
+            for error_message in e.messages:
+                messages.error(request,error_message)
+    #   here ValidationError is a object and message(list of error created itself by django ) is a list inside that object so to handel mangy error we kept it in loop and here error where pop up itself according to error
+              
+
+        if user_data_has_error:
+            return render (request,'register.html',context)
+
+        else:
+             user= User.objects.create_user( username=username,email=email, password=password )
+             user.is_active =True
+             user.is_staff =True
+             user.is_superuser=True
+             user.save()
+            #  messages.success(request,'Account create Sucessfully !')
+             return redirect('login_view')
+       
+
+       
+        
+    return render(request,'register.html')
+    
+def login_view(request):
+    if request.method == 'POST':
+        username =request.POST.get('username')
+        password =request.POST.get('password')
+        user = authenticate(request,username=username ,password=password)
+
+        if user is not None:
+            auth_login(request,user)
+            # messages.success(request,'Log_in sucessfully !')
+            return redirect('home')
+           
+        else:
+            messages.error(request,'Incorrect username or password. Please try again.')
+            return render(request,'login.html')
+    
+        
+    else:
+
+       return render(request,'login.html')
+  
+     
+def email_view(request):
+
+    if request.method == "POST":
+         user_email = request.POST.get('email')
+         if User.objects.filter(email=user_email).exists():
+             # here user_obj fetch the email of user from databse and store in recipient email list 
+             user_obj = User.objects.get(email=user_email)
+             from_email = settings.EMAIL_HOST_USER
+             recipient_email=[user_obj.email]
+
+             otp_number = random.randint(100000,999999)
+             request.session['user_email'] =user_email
+             request.session['otp']=str(otp_number)
+
+                 
+             subject="Reset Your Password"
+             message=(
+             f"Hey! {user_obj.username},\n"
+                f"Your OTP for password reset is:\n"
+                f"{otp_number}\n\n"
+             )
+             send_mail(subject,message,from_email,recipient_email)
+            #  messages.success(request,"OTP send sucessfully.Check your email to verify ")
+             return render(request, 'otp.html')
+         else:
+             messages.error(request,'Email not exist.Plese register Your email Frist')
+             return render(request, 'email.html')
+            
+    return render(request, 'email.html')
+    
+def reset(request):
+    # here user_email is the name that session of email tha i set in email view
+    email = request.session.get('user_email')
+    if request.method == "POST":
+        pass1 = request.POST.get('new_password')
+        pass2 = request.POST.get('conform_password')
+        if pass1 == pass2 :
+            #  it is just for that to reset the password of that user which email we fetch from database through user = User.objects.get(email=email)
+            user = User.objects.get(email=email)
+            user.set_password(pass1)
+            user.save()
+            messages.success(request,'Password reset Sucessfully')
+        else:
+            messages.error(request,'Password do not match')
+            return render(request, 'reset.html')
+
+    return render(request,'reset.html')
+
+
+def otp_view(request):
+    if request.method == "POST":
+        entered_otp = request.POST.get('otp_entered')
+        session_otp = request.session.get('otp')
+        if entered_otp == session_otp:
+            del request.session['otp']
+            return render(request, 'reset.html')
+        else:
+            messages.error(request,'Invalid OTP')
+            return render(request,'otp.html')
+
+    return render(request,'otp.html')
+
+    
+    
+
+
+            
+             
+
+def user_logout(request):
+    logout(request)
+    return redirect(login_view)
+
+def home(request):
+    return render(request,'home.html')

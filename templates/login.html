@@ -1,0 +1,45 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sign in</title>
+    <link rel="stylesheet" href="{% static '/css/style.css'%}" />
+  </head>
+  <body>
+    <div class="center">
+      <h1>Sign in</h1>
+
+      <form method="POST" action="/login_view/">
+        {% csrf_token %}
+        <div class="txt_field">
+          <input type="username" required name="username" />
+          <span></span>
+          <label>Username</label>
+        </div>
+
+        <div class="txt_field">
+          <input type="password" required name="password" />
+          <span></span>
+          <label>password</label>
+        </div>
+         {% if messages %}
+           {% for message in messages %}
+             {% if message.tags == 'error' %}
+                 <center><h4 style="color:red; margin:20px; font-weight:120; font-size: 14px;">{{message}}</h4></center>
+              {% else %}
+                  <center><h4 style="color:red; margin:20px; font-weight:120; font-size:14px;"></h4>{{message}}</h4></center>
+             {% endif %}
+           
+           {% endfor %}
+         {% endif %}
+         
+        <input type="submit" value="Login" />
+        <div class="signup_link">
+          Not a member? <a href="/register/">Signup</a>
+          <p>Forgot your Password? <a href="/email_view/">Reset Password</a></p>
+        </div>   
+      </form>
+    </div>
+  </body>
+</html>
