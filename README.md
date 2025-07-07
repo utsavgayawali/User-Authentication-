@@ -1,6 +1,6 @@
 # My Awesome Django Project with User Auth
 
-This is a brief description of what your project does.
+This is a brief description of what this project does.
 
 **Live Demo:** [Visit the Live Project Here](https://userauth-i7g3.onrender.com)
 
